@@ -2,8 +2,8 @@
 
 A full-stack storefront for **Geparco Inc.** (Poissons & fruits de mer, Montréal)
 where customers browse fish & seafood, build a cart, and check out with online
-card payment. Built with Next.js 16 (App Router), Prisma + SQLite, Tailwind CSS,
-and Stripe Checkout.
+card payment. Built with Next.js 16 (App Router), Prisma + PostgreSQL, Tailwind
+CSS, and Stripe Checkout.
 
 > The business name, address, phone, and hours in `src/lib/store-config.ts` are
 > Geparco's public details. **The catalog in `prisma/products.mjs` is placeholder
@@ -25,13 +25,15 @@ and Stripe Checkout.
 ## Prerequisites
 
 - Node.js 20+ (this project was built with Node 24)
+- A PostgreSQL database. [Neon](https://neon.tech) has a free tier; on Vercel,
+  create one from **Storage → Create Database**.
 - A [Stripe](https://stripe.com) account for real payments (optional — see Demo mode)
 
 ## Setup
 
 ```bash
 npm install
-cp .env.example .env      # then edit .env
+cp .env.example .env      # then set DATABASE_URL to your Postgres string
 npm run setup             # prisma generate + db push + seed sample catalog
 npm run dev               # http://localhost:3000
 ```
@@ -39,11 +41,14 @@ npm run dev               # http://localhost:3000
 `npm run setup` is a one-time convenience. Individual steps:
 
 ```bash
-npm run db:push     # create / update the SQLite schema
-npm run db:seed     # load the sample seafood catalog
+npm run db:push     # create / update the schema on the database
+npm run db:seed     # load the sample seafood catalog (matched by slug, so re-runnable)
 npm run db:studio   # browse the database in Prisma Studio
 npm run db:reset    # wipe and re-seed
 ```
+
+`npm run build` also runs `db push` + `db:seed` before `next build`, so a deploy
+keeps the database schema and the catalogue in sync with the code.
 
 ## Demo mode (no Stripe account needed)
 
@@ -85,22 +90,25 @@ Visit `/admin` and enter `ADMIN_PASSWORD` from `.env` (default `changeme` —
 **change it**). You can filter orders by status and move an order between
 `PENDING`, `PAID`, `FULFILLED`, and `CANCELLED`.
 
-## Deploying
+## Deploying to Vercel
 
-SQLite is fine locally but resets on most hosts. For production:
+1. **Create a database.** Vercel dashboard → **Storage** → *Create Database* →
+   **Neon / Postgres** → connect it to the project. Vercel injects `DATABASE_URL`
+   automatically. (Use the direct/unpooled URL if you're offered a choice.)
+2. **Set environment variables** (Settings → Environment Variables):
+   - `NEXT_PUBLIC_BASE_URL` — e.g. `https://geparco.vercel.app`
+   - `ADMIN_PASSWORD` — a real password
+   - `STORE_CURRENCY` — `cad`
+   - `STRIPE_SECRET_KEY` / `STRIPE_WEBHOOK_SECRET` — optional; blank = demo mode
+3. **Redeploy.** The `build` script runs `prisma db push` (creates the tables)
+   and `db:seed` (loads the catalogue) before `next build`, so the database is
+   ready on first deploy. Pushing to `main` deploys automatically after that.
+4. For real payments, add a Stripe webhook pointing at
+   `https://your-domain/api/stripe/webhook` and paste its signing secret.
 
-1. Provision a Postgres database (Neon, Supabase, RDS, …).
-2. In `prisma/schema.prisma` set `datasource db { provider = "postgresql" }`.
-3. Set `DATABASE_URL` to the Postgres connection string on the host.
-4. Run `npx prisma migrate deploy` (create a first migration locally with
-   `npx prisma migrate dev --name init`).
-5. Set `NEXT_PUBLIC_BASE_URL`, `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET`,
-   `ADMIN_PASSWORD` in the host's environment.
-6. Add a Stripe webhook endpoint pointing at
-   `https://your-domain/api/stripe/webhook` and use its signing secret.
-
-`npm run build && npm start` runs the production server anywhere Node runs;
-[Vercel](https://vercel.com) works with zero config.
+> `build` uses `prisma db push --accept-data-loss` for simplicity. Before you
+> have real order data, switch to migrations (`prisma migrate`) so schema
+> changes can't silently drop columns.
 
 ## Notes & next steps
 

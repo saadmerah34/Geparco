@@ -1,12 +1,16 @@
-// Prisma schema for the grocery store.
-// SQLite for local dev; swap `provider` + DATABASE_URL for Postgres in production.
+// Prisma schema for the Geparco store.
+// PostgreSQL. `DATABASE_URL` is a Postgres connection string (Neon / Vercel
+// Postgres / Supabase / …). Prefer the direct (unpooled) string so `db push`
+// works; at low traffic a serverless site is fine on the direct connection.
 
 generator client {
-  provider = "prisma-client-js"
+  provider      = "prisma-client-js"
+  // "native" for local dev; "rhel-openssl-3.0.x" for the Vercel build runtime.
+  binaryTargets = ["native", "rhel-openssl-3.0.x"]
 }
 
 datasource db {
-  provider = "sqlite"
+  provider = "postgresql"
   url      = env("DATABASE_URL")
 }
 
