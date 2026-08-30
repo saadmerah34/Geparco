@@ -1,0 +1,98 @@
+@import "tailwindcss";
+
+:root {
+  --background: #f6f8fa;
+  --surface: #ffffff;
+  --foreground: #0f2233;
+  --muted: #5a6b7a;
+  --border: #dde5ec;
+  --primary: #0a4d8c;
+  --primary-hover: #083c6e;
+  --primary-fg: #ffffff;
+  --accent: #e8593b;
+  --danger: #c0392b;
+
+  /* Marketing / landing surfaces */
+  --ink: #0b2233;
+  --ice: #e9f1f6;
+  --chalk: #f4efe4;
+  --sky: #1c9dd7;
+  --sky-soft: #eaf6ff;
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-surface: var(--surface);
+  --color-foreground: var(--foreground);
+  --color-muted: var(--muted);
+  --color-border: var(--border);
+  --color-primary: var(--primary);
+  --color-primary-hover: var(--primary-hover);
+  --color-primary-fg: var(--primary-fg);
+  --color-accent: var(--accent);
+  --color-danger: var(--danger);
+  --color-ink: var(--ink);
+  --color-ice: var(--ice);
+  --color-chalk: var(--chalk);
+  --color-sky: var(--sky);
+  --color-sky-soft: var(--sky-soft);
+  --font-sans: var(--font-geist-sans);
+  --font-mono: var(--font-geist-mono);
+}
+
+body {
+  background: var(--background);
+  color: var(--foreground);
+  font-family: var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif;
+}
+
+/* Anchor scrolling from the "Order now" CTA. */
+html {
+  scroll-behavior: smooth;
+}
+
+/* Hide number input spinners for the quantity fields. */
+input[type="number"]::-webkit-outer-spin-button,
+input[type="number"]::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+input[type="number"] {
+  -moz-appearance: textfield;
+  appearance: textfield;
+}
+
+/* --- Landing page load sequence -------------------------------------------
+   Scoped under .landing so these rules never touch the rest of the app. */
+.landing [data-rise] {
+  opacity: 0;
+  transform: translateY(14px);
+  animation: rise 0.7s cubic-bezier(0.2, 0.7, 0.2, 1) forwards;
+}
+.landing [data-rise="1"] { animation-delay: 0.05s; }
+.landing [data-rise="2"] { animation-delay: 0.15s; }
+.landing [data-rise="3"] { animation-delay: 0.25s; }
+.landing [data-rise="4"] { animation-delay: 0.35s; }
+
+.landing [data-board] {
+  opacity: 0;
+  transform: translateY(22px) scale(0.97);
+  animation: settle 0.8s cubic-bezier(0.2, 0.7, 0.2, 1) 0.3s forwards;
+}
+
+@keyframes rise {
+  to { opacity: 1; transform: translateY(0); }
+}
+@keyframes settle {
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html { scroll-behavior: auto; }
+  .landing [data-rise],
+  .landing [data-board] {
+    opacity: 1;
+    transform: none;
+    animation: none;
+  }
+}

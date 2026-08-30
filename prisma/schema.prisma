@@ -1,0 +1,90 @@
+// Prisma schema for the grocery store.
+// SQLite for local dev; swap `provider` + DATABASE_URL for Postgres in production.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model Product {
+  id          String   @id @default(cuid())
+  slug        String   @unique
+  name        String
+  description String
+  // French copy. Falls back to the English fields when empty.
+  nameFr        String @default("")
+  descriptionFr String @default("")
+  unitFr        String @default("")
+  // Price stored in the smallest currency unit (cents) to avoid float rounding.
+  priceCents  Int
+  unit        String // e.g. "each", "lb", "500g bag"
+  category    String
+  emoji       String   @default("🛒")
+  stock       Int      @default(100)
+  active      Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  orderItems  OrderItem[]
+
+  @@index([category])
+}
+
+model Order {
+  id              String      @id @default(cuid())
+  createdAt       DateTime    @default(now())
+  updatedAt       DateTime    @updatedAt
+  status          String      @default("PENDING") // PENDING | PAID | CANCELLED
+
+  customerName    String
+  customerEmail   String
+  customerPhone   String
+  deliveryMethod  String // "delivery" | "pickup"
+  address         String      @default("")
+  notes           String      @default("")
+
+  subtotalCents   Int
+  deliveryFeeCents Int        @default(0)
+  totalCents      Int
+
+  stripeSessionId String?     @unique
+
+  items           OrderItem[]
+
+  @@index([status])
+  @@index([createdAt])
+}
+
+model OrderItem {
+  id         String  @id @default(cuid())
+  orderId    String
+  order      Order   @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  productId  String
+  product    Product @relation(fields: [productId], references: [id])
+  name       String
+  priceCents Int
+  quantity   Int
+
+  @@index([orderId])
+}
+
+model Enquiry {
+  id        String   @id @default(cuid())
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  status    String   @default("NEW") // NEW | CONTACTED | CLOSED
+
+  name      String
+  company   String   @default("")
+  phone     String
+  email     String   @default("")
+  message   String
+  locale    String   @default("fr")
+
+  @@index([status])
+  @@index([createdAt])
+}
