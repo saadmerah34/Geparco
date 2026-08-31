@@ -1,7 +1,9 @@
 // Prisma schema for the Geparco store.
-// PostgreSQL. `DATABASE_URL` is a Postgres connection string (Neon / Vercel
-// Postgres / Supabase / …). Prefer the direct (unpooled) string so `db push`
-// works; at low traffic a serverless site is fine on the direct connection.
+// PostgreSQL (Neon / Vercel Postgres / Supabase / …).
+//   DATABASE_URL          — pooled connection, used at runtime
+//   DATABASE_URL_UNPOOLED — direct connection, used by `prisma db push` / migrate
+// Neon's Vercel integration provides both automatically. If you only have one
+// URL, set DATABASE_URL_UNPOOLED to the same value.
 
 generator client {
   provider      = "prisma-client-js"
@@ -10,8 +12,9 @@ generator client {
 }
 
 datasource db {
-  provider = "postgresql"
-  url      = env("DATABASE_URL")
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DATABASE_URL_UNPOOLED")
 }
 
 model Product {
