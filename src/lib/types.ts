@@ -12,5 +12,7 @@ export type PublicProduct = {
   /** Localised category label, used for display. */
   categoryLabel: string;
   emoji: string;
+  /** Product photo URL, or "" to fall back to the emoji. */
+  imageUrl: string;
   inStock: boolean;
 };

@@ -10,6 +10,7 @@ import {
   toggleProductActive,
 } from "./actions";
 import { AdminLogin } from "./AdminLogin";
+import { ImageUpload } from "./ImageUpload";
 
 export const metadata = { title: "Admin" };
 export const dynamic = "force-dynamic";
@@ -337,10 +338,19 @@ async function ProductsView() {
             {products.map((p) => (
               <tr key={p.id} className={p.active ? "" : "opacity-55"}>
                 <td className="px-4 py-3">
-                  <div className="flex items-center gap-2">
-                    <span aria-hidden className="text-lg">
-                      {p.emoji}
-                    </span>
+                  <div className="flex items-center gap-3">
+                    {p.imageUrl ? (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img
+                        src={p.imageUrl}
+                        alt=""
+                        className="h-10 w-10 shrink-0 rounded-md object-cover"
+                      />
+                    ) : (
+                      <span aria-hidden className="text-lg">
+                        {p.emoji}
+                      </span>
+                    )}
                     <div>
                       <div className="font-medium">{p.name}</div>
                       {p.nameFr && (
@@ -416,10 +426,13 @@ function ProductFields({
     category: string;
     emoji: string;
     stock: number;
+    imageUrl: string;
   };
 }) {
   return (
     <div className="grid gap-3 sm:grid-cols-2">
+      <ImageUpload defaultUrl={product?.imageUrl} />
+
       <Field label="Name (English)" name="name" defaultValue={product?.name} required />
       <Field label="Nom (français)" name="nameFr" defaultValue={product?.nameFr} />
 

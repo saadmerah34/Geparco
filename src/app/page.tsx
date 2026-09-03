@@ -37,6 +37,7 @@ export default async function HomePage() {
       category: p.category,
       categoryLabel: categoryLabel(p.category, locale),
       emoji: p.emoji,
+      imageUrl: p.imageUrl,
       inStock: p.stock > 0,
     };
   });

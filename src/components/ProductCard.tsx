@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import Image from "next/image";
 import { useCart } from "@/lib/cart-context";
 import { useI18n } from "@/lib/i18n/client";
 import { formatMoney } from "@/lib/money";
@@ -27,8 +28,18 @@ export function ProductCard({ product }: { product: PublicProduct }) {
 
   return (
     <div className="group flex flex-col rounded-2xl border border-border bg-surface overflow-hidden transition-shadow hover:shadow-md">
-      <div className="flex items-center justify-center aspect-4/3 bg-background text-6xl select-none">
-        <span aria-hidden>{product.emoji}</span>
+      <div className="relative flex items-center justify-center aspect-4/3 bg-background text-6xl select-none">
+        {product.imageUrl ? (
+          <Image
+            src={product.imageUrl}
+            alt={product.name}
+            fill
+            sizes="(min-width: 1024px) 25vw, (min-width: 640px) 33vw, 50vw"
+            className="object-cover"
+          />
+        ) : (
+          <span aria-hidden>{product.emoji}</span>
+        )}
       </div>
 
       <div className="flex flex-1 flex-col gap-1 p-4">

@@ -26,6 +26,8 @@ model Product {
   priceCents  Int
   unit        String // e.g. "each", "lb", "500g bag"
   category    String
+  // Optional product photo (Vercel Blob URL). Emoji is the fallback.
+  imageUrl    String   @default("")
   emoji       String   @default("🛒")
   stock       Int      @default(100)
   active      Boolean  @default(true)

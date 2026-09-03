@@ -111,6 +111,13 @@ const productSchema = z.object({
   category: z.string().trim().min(1).max(60),
   emoji: z.string().trim().min(1).max(8).optional().default("🐟"),
   stock: z.coerce.number().int().min(0).max(100000).optional().default(0),
+  imageUrl: z
+    .string()
+    .trim()
+    .max(600)
+    .refine((v) => v === "" || /^https:\/\//.test(v), "Invalid image URL")
+    .optional()
+    .default(""),
 });
 
 function parseProduct(formData: FormData) {
@@ -125,6 +132,7 @@ function parseProduct(formData: FormData) {
     category: formData.get("category"),
     emoji: formData.get("emoji") || "🐟",
     stock: formData.get("stock") ?? 0,
+    imageUrl: formData.get("imageUrl") ?? "",
   });
   if (!parsed.success) throw new Error("Please fill in the required fields.");
   const d = parsed.data;
@@ -139,6 +147,7 @@ function parseProduct(formData: FormData) {
     category: d.category,
     emoji: d.emoji,
     stock: d.stock,
+    imageUrl: d.imageUrl,
   };
 }
 
