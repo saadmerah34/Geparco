@@ -13,20 +13,32 @@ export function ImageUpload({ defaultUrl = "" }: { defaultUrl?: string }) {
   async function handleFile(file: File) {
     setStatus("uploading");
     setError(null);
+    const controller = new AbortController();
+    const timer = window.setTimeout(() => controller.abort(), 45_000);
     try {
       const blob = await upload(file.name, file, {
         access: "public",
         handleUploadUrl: "/api/upload",
+        abortSignal: controller.signal,
       });
       setUrl(blob.url);
       setStatus("idle");
     } catch (err) {
+      const msg = (err as Error).message ?? "";
       setError(
-        (err as Error).message.includes("Not authorized")
-          ? "Your session expired — sign in again."
-          : "Upload failed. Try a smaller JPG or PNG.",
+        msg.includes("aborted")
+          ? "Upload timed out. Check your connection and try again."
+          : msg.includes("Not authorized")
+            ? "Your session expired — sign in again."
+            : msg.includes("storage isn't set up") ||
+                msg.includes("Blob store") ||
+                msg.includes("token")
+              ? "Photo storage isn't connected yet. You can skip the photo for now."
+              : "Upload failed. Try a smaller JPG or PNG.",
       );
       setStatus("error");
+    } finally {
+      window.clearTimeout(timer);
     }
   }
 

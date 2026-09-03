@@ -7,6 +7,16 @@ import { isAuthed } from "@/app/admin/actions";
 // Vercel Blob — so it isn't limited by the serverless request body size.
 
 export async function POST(request: Request): Promise<NextResponse> {
+  if (!process.env.BLOB_READ_WRITE_TOKEN) {
+    return NextResponse.json(
+      {
+        error:
+          "Photo storage isn't set up. Create a Vercel Blob store and connect it to the project (see .env.example).",
+      },
+      { status: 503 },
+    );
+  }
+
   const body = (await request.json()) as HandleUploadBody;
 
   try {
