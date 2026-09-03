@@ -5,6 +5,9 @@ import {
   logout,
   setOrderStatus,
   setEnquiryStatus,
+  createProduct,
+  updateProduct,
+  toggleProductActive,
 } from "./actions";
 import { AdminLogin } from "./AdminLogin";
 
@@ -13,6 +16,16 @@ export const dynamic = "force-dynamic";
 
 const STATUSES = ["PENDING", "PAID", "FULFILLED", "CANCELLED"] as const;
 const ENQUIRY_STATUSES = ["NEW", "CONTACTED", "CLOSED"] as const;
+
+const CANONICAL_CATEGORIES = [
+  "Fresh Fish",
+  "Shellfish",
+  "Crab & Lobster",
+  "Smoked & Cured",
+  "Frozen",
+  "Prepared & Ready",
+  "Pantry",
+];
 
 const badgeClass: Record<string, string> = {
   PENDING: "bg-accent/15 text-accent",
@@ -24,13 +37,20 @@ const badgeClass: Record<string, string> = {
   CLOSED: "bg-background text-muted",
 };
 
+type View = "orders" | "enquiries" | "products";
+
 export default async function AdminPage({ searchParams }: PageProps<"/admin">) {
   if (!(await isAuthed())) {
     return <AdminLogin />;
   }
 
   const params = await searchParams;
-  const view = params.view === "enquiries" ? "enquiries" : "orders";
+  const view: View =
+    params.view === "enquiries"
+      ? "enquiries"
+      : params.view === "products"
+        ? "products"
+        : "orders";
   const newEnquiries = await prisma.enquiry.count({ where: { status: "NEW" } });
 
   return (
@@ -44,6 +64,11 @@ export default async function AdminPage({ searchParams }: PageProps<"/admin">) {
             active={view === "enquiries"}
             badge={newEnquiries || undefined}
           />
+          <Tab
+            label="Products"
+            href="/admin?view=products"
+            active={view === "products"}
+          />
         </div>
         <form action={logout}>
           <button className="text-sm text-muted hover:text-danger">
@@ -53,11 +78,13 @@ export default async function AdminPage({ searchParams }: PageProps<"/admin">) {
       </div>
 
       <div className="mt-6">
-        {view === "orders" ? (
-          <OrdersView filter={typeof params.status === "string" ? params.status : undefined} />
-        ) : (
-          <EnquiriesView />
+        {view === "orders" && (
+          <OrdersView
+            filter={typeof params.status === "string" ? params.status : undefined}
+          />
         )}
+        {view === "enquiries" && <EnquiriesView />}
+        {view === "products" && <ProductsView />}
       </div>
     </div>
   );
@@ -267,6 +294,244 @@ async function EnquiriesView() {
         </tbody>
       </table>
     </div>
+  );
+}
+
+async function ProductsView() {
+  const products = await prisma.product.findMany({
+    orderBy: [{ active: "desc" }, { category: "asc" }, { name: "asc" }],
+  });
+  const categories = Array.from(
+    new Set([...CANONICAL_CATEGORIES, ...products.map((p) => p.category)]),
+  );
+
+  return (
+    <div className="space-y-6">
+      {/* Add product */}
+      <details className="rounded-2xl border border-border bg-surface">
+        <summary className="cursor-pointer list-none px-5 py-4 font-semibold">
+          + Add a product
+        </summary>
+        <form action={createProduct} className="border-t border-border p-5">
+          <ProductFields categories={categories} />
+          <button className="mt-4 rounded-xl bg-primary px-5 py-2.5 text-sm font-semibold text-primary-fg hover:bg-primary-hover">
+            Add product
+          </button>
+        </form>
+      </details>
+
+      {/* Existing products */}
+      <div className="overflow-x-auto rounded-2xl border border-border">
+        <table className="w-full min-w-[760px] text-sm">
+          <thead className="bg-surface text-left text-muted">
+            <tr>
+              <th className="px-4 py-3 font-medium">Product</th>
+              <th className="px-4 py-3 font-medium">Category</th>
+              <th className="px-4 py-3 font-medium text-right">Price</th>
+              <th className="px-4 py-3 font-medium text-right">Stock</th>
+              <th className="px-4 py-3 font-medium">Shown</th>
+              <th className="px-4 py-3 font-medium">Edit</th>
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-border bg-surface">
+            {products.map((p) => (
+              <tr key={p.id} className={p.active ? "" : "opacity-55"}>
+                <td className="px-4 py-3">
+                  <div className="flex items-center gap-2">
+                    <span aria-hidden className="text-lg">
+                      {p.emoji}
+                    </span>
+                    <div>
+                      <div className="font-medium">{p.name}</div>
+                      {p.nameFr && (
+                        <div className="text-xs text-muted">{p.nameFr}</div>
+                      )}
+                    </div>
+                  </div>
+                </td>
+                <td className="px-4 py-3 text-muted">{p.category}</td>
+                <td className="px-4 py-3 text-right tabular-nums">
+                  {formatMoney(p.priceCents)}
+                  <span className="text-xs text-muted"> / {p.unit}</span>
+                </td>
+                <td className="px-4 py-3 text-right tabular-nums">{p.stock}</td>
+                <td className="px-4 py-3">
+                  <form action={toggleProductActive}>
+                    <input type="hidden" name="id" value={p.id} />
+                    <input
+                      type="hidden"
+                      name="active"
+                      value={p.active ? "false" : "true"}
+                    />
+                    <button
+                      className={`rounded-full px-2.5 py-1 text-xs font-medium ${
+                        p.active
+                          ? "bg-primary/15 text-primary"
+                          : "bg-background text-muted"
+                      }`}
+                    >
+                      {p.active ? "Visible" : "Hidden"}
+                    </button>
+                  </form>
+                </td>
+                <td className="px-4 py-3">
+                  <details>
+                    <summary className="cursor-pointer list-none rounded-md border border-border px-2 py-1 text-xs hover:bg-background">
+                      Edit
+                    </summary>
+                    <form
+                      action={updateProduct}
+                      className="mt-3 w-[min(90vw,32rem)] rounded-xl border border-border p-4"
+                    >
+                      <input type="hidden" name="id" value={p.id} />
+                      <ProductFields categories={categories} product={p} />
+                      <button className="mt-4 rounded-xl bg-primary px-5 py-2.5 text-sm font-semibold text-primary-fg hover:bg-primary-hover">
+                        Save changes
+                      </button>
+                    </form>
+                  </details>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  );
+}
+
+function ProductFields({
+  categories,
+  product,
+}: {
+  categories: string[];
+  product?: {
+    name: string;
+    nameFr: string;
+    description: string;
+    descriptionFr: string;
+    priceCents: number;
+    unit: string;
+    unitFr: string;
+    category: string;
+    emoji: string;
+    stock: number;
+  };
+}) {
+  return (
+    <div className="grid gap-3 sm:grid-cols-2">
+      <Field label="Name (English)" name="name" defaultValue={product?.name} required />
+      <Field label="Nom (français)" name="nameFr" defaultValue={product?.nameFr} />
+
+      <label className="block sm:col-span-2">
+        <span className="text-xs font-medium text-muted">
+          Description (English) <span className="text-danger">*</span>
+        </span>
+        <textarea
+          name="description"
+          required
+          rows={2}
+          defaultValue={product?.description}
+          className="mt-1 w-full rounded-lg border border-border bg-surface px-3 py-2 text-sm outline-none focus:border-primary"
+        />
+      </label>
+      <label className="block sm:col-span-2">
+        <span className="text-xs font-medium text-muted">Description (français)</span>
+        <textarea
+          name="descriptionFr"
+          rows={2}
+          defaultValue={product?.descriptionFr}
+          className="mt-1 w-full rounded-lg border border-border bg-surface px-3 py-2 text-sm outline-none focus:border-primary"
+        />
+      </label>
+
+      <Field
+        label="Price (e.g. 12.99)"
+        name="price"
+        type="number"
+        step="0.01"
+        min="0"
+        defaultValue={product ? (product.priceCents / 100).toFixed(2) : undefined}
+        required
+      />
+      <Field
+        label="Stock (quantity)"
+        name="stock"
+        type="number"
+        min="0"
+        defaultValue={product ? String(product.stock) : "100"}
+      />
+      <Field
+        label="Unit (English, e.g. lb / each)"
+        name="unit"
+        defaultValue={product?.unit}
+        required
+      />
+      <Field
+        label="Unité (français, e.g. lb / unité)"
+        name="unitFr"
+        defaultValue={product?.unitFr}
+      />
+
+      <label className="block">
+        <span className="text-xs font-medium text-muted">Category</span>
+        <select
+          name="category"
+          defaultValue={product?.category ?? categories[0]}
+          className="mt-1 w-full rounded-lg border border-border bg-surface px-3 py-2 text-sm outline-none focus:border-primary"
+        >
+          {categories.map((c) => (
+            <option key={c} value={c}>
+              {c}
+            </option>
+          ))}
+        </select>
+      </label>
+      <Field
+        label="Emoji"
+        name="emoji"
+        defaultValue={product?.emoji ?? "🐟"}
+        maxLength={8}
+      />
+    </div>
+  );
+}
+
+function Field({
+  label,
+  name,
+  defaultValue,
+  type = "text",
+  required,
+  step,
+  min,
+  maxLength,
+}: {
+  label: string;
+  name: string;
+  defaultValue?: string;
+  type?: string;
+  required?: boolean;
+  step?: string;
+  min?: string;
+  maxLength?: number;
+}) {
+  return (
+    <label className="block">
+      <span className="text-xs font-medium text-muted">
+        {label} {required && <span className="text-danger">*</span>}
+      </span>
+      <input
+        name={name}
+        type={type}
+        defaultValue={defaultValue}
+        required={required}
+        step={step}
+        min={min}
+        maxLength={maxLength}
+        className="mt-1 w-full rounded-lg border border-border bg-surface px-3 py-2 text-sm outline-none focus:border-primary"
+      />
+    </label>
   );
 }
 
